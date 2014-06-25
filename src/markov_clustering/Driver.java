@@ -68,7 +68,7 @@ public class Driver {
 				/** Run a two step matrix multiplication map-reduce job */
 				MatrixMultiplication.run(clusterConf, inputfolder, working[current], working[inflate]);
 				
-				Inflation.run(working[inflate], working[next]);
+				Inflation.run(clusterConf, working[inflate], working[next]);
 				
 				/** Run a one step map-reduce job to check convergece */
 				converged = Convergence.run(clusterConf, working[current], working[next]);
