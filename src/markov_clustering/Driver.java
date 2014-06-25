@@ -61,8 +61,9 @@ public class Driver {
 				current = iterations%2;
 				next = (iterations+1)%2;
 				
-				/** Ensure the directory doesn't exist*/
+				/** Ensure the directories do not exist*/
 				fs.delete(working[next], true);
+				fs.delete(working[inflate], true);
 				
 				/** Run a two step matrix multiplication map-reduce job */
 				MatrixMultiplication.run(clusterConf, inputfolder, working[current], working[inflate]);
