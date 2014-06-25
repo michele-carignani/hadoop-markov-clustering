@@ -1,4 +1,6 @@
 package markov_clustering;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 
@@ -7,6 +9,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 public class SumRReducer extends Reducer<Text, Text, Text, DoubleWritable> {
+	
+	private static final Log LOG = LogFactory.getLog(SumRReducer.class);
+	
 	public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 		String columnId = key.toString();
 		/** Inflation parameter */
@@ -22,6 +27,7 @@ public class SumRReducer extends Reducer<Text, Text, Text, DoubleWritable> {
 			double value = Math.pow(Double.parseDouble(fields[2]), r);
 			value /= rescale;
 			context.write(new Text(fields[1]+","+columnId), new DoubleWritable(value));
+			LOG.info("==> Write value: " + value + " fields: " + fields[1]+","+columnId);
 		}
 	}
 }
