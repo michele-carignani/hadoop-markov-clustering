@@ -36,7 +36,7 @@ public class MatrixRowByColumnReducer extends Reducer<Text, Text, Text, DoubleWr
                     k = Integer.toString(b.getKey());
                     b_jk = b.getValue();
                     if(b_jk != 0){
-	                    out_key = new Text(i + "," + k);
+	                    out_key = new Text(k + "," + i);
 	                    outputValue = new DoubleWritable(a_ij * b_jk);
 	                    context.write(out_key, outputValue);
                     }

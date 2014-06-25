@@ -12,8 +12,8 @@ public class MatrixRowMapper extends Mapper<LongWritable, Text, Text, Text> {
         String[] indicesAndValue = line[0].split(",");
         Text outputKey = new Text();
         Text outputValue = new Text();	            
-            outputKey.set(indicesAndValue[1]);
-            outputValue.set("A," + indicesAndValue[0] + "," + line[1]);
+            outputKey.set(indicesAndValue[0]);
+            outputValue.set("A," + indicesAndValue[1] + "," + line[1]);
             context.write(outputKey, outputValue);
     }
 }

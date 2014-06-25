@@ -13,7 +13,7 @@ public class MatrixColumnMapper extends Mapper<LongWritable, Text, Text, Text> {
         Text outputKey = new Text();
         Text outputValue = new Text();
        	outputKey.set(indicesAndValue[1]);
-        outputValue.set("B," + indicesAndValue[1] + "," + line[1]);
+        outputValue.set("B," + indicesAndValue[0] + "," + line[1]);
         context.write(outputKey, outputValue);
     }
 }
