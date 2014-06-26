@@ -5,6 +5,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import markov_clustering.test.StochasticRowVerifier;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -28,7 +30,7 @@ public class Driver {
 		int maxIterations = Integer.parseInt(args[2].trim());
 		int current, next, inflate = 2;
 		
-		Path[] working = new Path[2];
+		Path[] working = new Path[3];
 		
 		boolean converged = false;
 		
@@ -68,24 +70,26 @@ public class Driver {
 				/** Run a two step matrix multiplication map-reduce job */
 				MatrixMultiplication.run(clusterConf, inputfolder, working[current], working[inflate]);
 				
+				/** Inflation, for making convergence faster. Default r is = 2 
+				 * */	
 				Inflation.run(clusterConf, working[inflate], working[next]);
 				
-				/** Run a one step map-reduce job to check convergece */
+				/** Run a one step map-reduce job to check convergece. Default threshold is 10^-5 */
 				converged = Convergence.run(clusterConf, working[current], working[next]);
 				
 				iterations++;
 				
 			} while (!converged && maxIterations > iterations);
 			if (converged) {
-				
 				System.out.println("Reached convergency in "+iterations+" iterations");
 				System.out.println(clusterConf.getDouble("convergedDouble", 0.0));
 				
 			} else { 
-				
 				System.out.println("Convergency not reached");
-				
 			}
+			System.out.println("Running correctness diagnosis:");
+			StochasticRowVerifier.run(clusterConf, working[next], new Path("/tmp/stochasticVerifier"+dateFormat.format(cal.getTime())));
+			
 		} catch(IOException io) {
 			
 			io.printStackTrace();

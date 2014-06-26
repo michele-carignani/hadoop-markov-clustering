@@ -19,6 +19,7 @@ public class Convergence {
 	public static enum ConvergenceCounter{
 		NOT_CONVERGED;	
 	}
+		
 	public static boolean run(Configuration conf, Path oldMatrix, Path newMatrix) throws IOException, ClassNotFoundException, InterruptedException {
 		Job convergence = Job.getInstance(conf, "MatrixConvergenceChecker");
 		
@@ -27,6 +28,7 @@ public class Convergence {
         convergence.setOutputValueClass(DoubleWritable.class);
         convergence.setMapperClass(ConvergenceMapper.class);
         convergence.setReducerClass(ConvergenceReducer.class);
+        
         convergence.setInputFormatClass(TextInputFormat.class);
         convergence.setOutputFormatClass(TextOutputFormat.class);
         MultipleInputs.addInputPath(convergence, oldMatrix, TextInputFormat.class, ConvergenceMapper.class);
@@ -38,10 +40,7 @@ public class Convergence {
         convergence.submit();
         if (!convergence.waitForCompletion(true)) System.exit(-1);       
         boolean converged =  convergence.getCounters().findCounter(ConvergenceCounter.NOT_CONVERGED).getValue() <= 0; 
-        System.out.println(convergence.getCounters().findCounter(ConvergenceCounter.NOT_CONVERGED).getValue());
-        
-        if (!converged) System.out.println("Max difference: "+ conf.getDouble("maxDifference", 0.0));
-        
+        System.out.println("Matrix differs from the previous in "+convergence.getCounters().findCounter(ConvergenceCounter.NOT_CONVERGED).getValue()+" values");        
         return converged;
    
 	}
