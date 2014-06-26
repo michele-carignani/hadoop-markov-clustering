@@ -24,26 +24,26 @@ public class SumRReducer extends Reducer<Text, Text, Text, DoubleWritable> {
 		}
 	};
 	
-	
+	@Override
 	public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-		String columnId = key.toString();
+		String rowId = key.toString();
 		/** Inflation parameter */
 		double r = context.getConfiguration().getDouble("inflationParameter", 2);
-		
+		double threshold = context.getConfiguration().getDouble("threshold", 0.0001);
 		double rescale = 0.0;
 		LinkedList<Entry<Text, Double>> vals = new LinkedList<Entry<Text, Double>>();
 		for (Text v : values) {
 			/** fields[0] == 'B', not used here, fields[1] is the row, fields[2] is the value*/
 			String[] fields = v.toString().split(",");
-			double currentValue = Double.parseDouble(fields[2]);
-			Text coordinates = new Text(fields[1]+","+columnId);
-			rescale += Math.pow(Double.parseDouble(fields[2]), r);
+			double currentValue = Math.pow(Double.parseDouble(fields[2]), 2);
+			Text coordinates = new Text(rowId+","+fields[1]);
+			if (currentValue < threshold) continue;
+			rescale += currentValue;
 			vals.add(new SimpleEntry<Text, Double>(coordinates, currentValue));
 		}
-		
-		
+			
 		for (Entry<Text, Double> v:vals) {	
-			double value = Math.pow(v.getValue(), r);
+			double value = v.getValue();
 			value /= rescale;
 			context.write(v.getKey(), new DoubleWritable(value));
 			LOG.debug("==> Write value: " + value + " fields:");

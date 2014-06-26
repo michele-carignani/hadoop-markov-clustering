@@ -25,5 +25,6 @@ public class Inflation {
 		FileOutputFormat.setOutputPath(job, output);
 	    job.submit();
 	    if(!job.waitForCompletion(true)) System.exit(-1);
+	    
 	}
 }

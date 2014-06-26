@@ -4,10 +4,10 @@ import java.io.IOException;
 
 import markov_clustering.Driver;
 import markov_clustering.MatrixRowMapper;
+import markov_clustering.SumRReducer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -16,9 +16,9 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class StochasticRowVerifier {
 	public static void run (Configuration configuration, Path input, Path output) throws IOException, ClassNotFoundException, InterruptedException {
-		Job job = Job.getInstance(configuration, "Verification of matrix correctness");
+		Job job = Job.getInstance(configuration, "Matrix correctness verifier");
 	    job.setJarByClass(Driver.class);
-	    job.setOutputKeyClass(IntWritable.class);
+	    job.setOutputKeyClass(Text.class);
 	    job.setOutputValueClass(Text.class);
 	    
 	    job.setReducerClass(CheckStochasticReducer.class);
