@@ -5,11 +5,14 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import markov_clustering.blockmultiplication.BlockMultiplier;
+import markov_clustering.blockmultiplication.BlockWiseMatrixMultiplication;
 import markov_clustering.test.StochasticRowVerifier;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.ToolRunner;
 
 
 public class Driver {
@@ -28,9 +31,9 @@ public class Driver {
 		
 		int iterations = 0;
 		int maxIterations = Integer.parseInt(args[2].trim());
-		int current, next, inflate = 2;
+		int current, next, prev, inflate = 3;
 		
-		Path[] working = new Path[3];
+		Path[] working = new Path[4];
 		
 		boolean converged = false;
 		
@@ -39,25 +42,31 @@ public class Driver {
 		Path inputfolder = new Path(args[0]);
 		clusterConf.setDouble("threshold", 0.00001);
 		clusterConf.setBoolean("converged", true);
-		
-		
-		/** Working directory 1, at first step initialize with copy of original matrix M0 */
-		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm");
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 	    Calendar cal = Calendar.getInstance();
-		working[0] = new Path("/tmp/intmul"+dateFormat.format(cal.getTime()));
-		
-		
-		/** Working directory 2, at first step empty */
-		working[1] = new Path("/tmp/intmul2"+dateFormat.format(cal.getTime()));
-		
-		working[inflate] = new Path("/tmp/inflate"+dateFormat.format(cal.getTime()));
-		
+		String[] dirs= new String[]{
+				"/tmp/A-Partitioned-"+dateFormat.format(cal.getTime()), 
+				"/tmp/B-Partitioned-"+dateFormat.format(cal.getTime()), 
+				"/tmp/C-Partitioned-"+dateFormat.format(cal.getTime())
+		};
+		try {
+			ToolRunner.run(clusterConf, new MatrixSplitter(), new String[]{args[0], dirs[0]});
+			ToolRunner.run(clusterConf, new MatrixSplitter(), new String[]{args[0], dirs[1]});
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.exit(-1);
+		/** Working directory 1, at first step initialize with copy of original matrix M0 */
+		working[0] = new Path(dirs[0]);
+		working[1] = new Path(dirs[1]);
+		working[2] = new Path(dirs[2]);		
+		working[inflate] = new Path("/tmp/Inflate-"+dateFormat.format(cal.getTime()));
 		FileSystem fs = FileSystem.get(clusterConf);
 		
 		
 		try {
-			/** Copy original matrix to the first input folder*/
-			DistCopy.copy(inputfolder, working[0]);
+
 			
 			do {
 				System.out.println(
@@ -69,16 +78,17 @@ public class Driver {
 				System.out.println(
 						"##################################################################################"
 						);
-				current = iterations%2;
-				next = (iterations+1)%2;
+				prev = iterations%3;
+				current = (iterations+1)%3;
+				next = (iterations+2)%3;
 				
 				/** Ensure the directories do not exist*/
 				fs.delete(working[next], true);
-				fs.delete(working[inflate], true);
+				//fs.delete(working[inflate], true);
 				
 				/** Run a two step matrix multiplication map-reduce job */
-				MatrixMultiplication.run(clusterConf, inputfolder, working[current], working[inflate]);
-				
+				ToolRunner.run(clusterConf, new BlockWiseMatrixMultiplication(), new String[]{dirs[prev], dirs[current], dirs[next]});
+				System.exit(-1);
 				/** Inflation, for making convergence faster. Default r is = 2 
 				 * */	
 				Inflation.run(clusterConf, working[inflate], working[next]);
@@ -113,6 +123,9 @@ public class Driver {
 		} catch (ClassNotFoundException cnf) {
 			cnf.printStackTrace();
 			System.exit(-1);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		long end = System.nanoTime();
 		System.out.println((end-beginning)/1000 + " microseconds of execution time");
