@@ -1,4 +1,4 @@
-package markov_clustering;
+package markov_clustering.blockmultiplication;
 
 import java.io.IOException;
 
