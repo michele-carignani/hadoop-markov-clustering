@@ -23,7 +23,7 @@ public class Driver {
 	 * @throws IOException 
 	 */
 	public static void main(String[] args) throws IOException {
-		
+		long beginning = System.nanoTime();
 		Configuration clusterConf = new Configuration();
 		
 		int iterations = 0;
@@ -34,7 +34,7 @@ public class Driver {
 		
 		boolean converged = false;
 		
-		
+		clusterConf.setDouble("inflationParameter", 4);
 		/** Directory for the original matrix M0 */
 		Path inputfolder = new Path(args[0]);
 		clusterConf.setDouble("threshold", 0.00001);
@@ -60,6 +60,15 @@ public class Driver {
 			DistCopy.copy(inputfolder, working[0]);
 			
 			do {
+				System.out.println(
+				"##################################################################################"
+				);
+				System.out.println(
+				"#                    Iteration n.    "+iterations+"                                            #"
+				);
+				System.out.println(
+						"##################################################################################"
+						);
 				current = iterations%2;
 				next = (iterations+1)%2;
 				
@@ -105,6 +114,8 @@ public class Driver {
 			cnf.printStackTrace();
 			System.exit(-1);
 		}
+		long end = System.nanoTime();
+		System.out.println((end-beginning)/1000 + " microseconds of execution time");
 	}
 	
 	/** Runs the job for matrix multiplication*/
