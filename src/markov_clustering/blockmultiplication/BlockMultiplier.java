@@ -71,6 +71,8 @@ public class BlockMultiplier extends Configured implements Tool {
 		if (!multiplicationController.getFailedJobList().isEmpty()) System.exit(-1);
 		/** Start job summing up all the partial matrices.*/
 		Path sumInputPath = new Path(arg[2]+"/tmpsum/*/");
+		conf.setInt("blockIdRow", rowId);
+		conf.setInt("blockIdCol", colId);
 		Job sumJob = Job.getInstance(conf);
 		sumJob.setOutputKeyClass(Text.class);
 		sumJob.setOutputValueClass(DoubleWritable.class);
@@ -79,7 +81,7 @@ public class BlockMultiplier extends Configured implements Tool {
 		sumJob.setMapperClass(PartialSumMapper.class);
 		sumJob.setReducerClass(BlockSumReducer.class);
 		FileInputFormat.addInputPath(sumJob, sumInputPath);
-		FileOutputFormat.setOutputPath(sumJob, new Path(arg[2]+"/M-"+rowId+"-"+colId+"/"));
+		FileOutputFormat.setOutputPath(sumJob, new Path(arg[2]+"/"+rowId+"-"+colId+"/"));
 		sumJob.submit();
 		boolean success = sumJob.waitForCompletion(true);
 		fs.delete(sumInputPath, true);
@@ -108,9 +110,9 @@ public class BlockMultiplier extends Configured implements Tool {
 	     innerJob.setReducerClass(MatrixRowByColumnReducer.class);
 	     innerJob.setOutputFormatClass(TextOutputFormat.class);
 	     /** Input from partition of matrix 1 */
-	     MultipleInputs.addInputPath(innerJob, new Path(inputDir1+"/M-"+rowId+"-"+subMulIndex), TextInputFormat.class, MatrixRowMapper.class);
+	     MultipleInputs.addInputPath(innerJob, new Path(inputDir1+"/"+rowId+"-"+subMulIndex), TextInputFormat.class, MatrixRowMapper.class);
 	     /** input from partition of matrix 2 */
-	     MultipleInputs.addInputPath(innerJob, new Path(inputDir2+"/M-"+subMulIndex+"-"+colId), TextInputFormat.class, MatrixColumnMapper.class);
+	     MultipleInputs.addInputPath(innerJob, new Path(inputDir2+"/"+subMulIndex+"-"+colId), TextInputFormat.class, MatrixColumnMapper.class);
 	     /** Initialization of temporary dir */
 	     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss"+Math.random());
 		 Calendar cal = Calendar.getInstance();
