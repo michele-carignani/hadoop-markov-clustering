@@ -39,7 +39,9 @@ public class SumRReducer extends Reducer<Text, Text, Text, DoubleWritable> {
 			Text coordinates = new Text(rowId+","+fields[1]);
 			if (currentValue < threshold) continue;
 			rescale += currentValue;
-			vals.add(new SimpleEntry<Text, Double>(coordinates, currentValue));
+			double currentValue = Double.parseDouble(fields[2]);
+			Text coordinates = new Text(rowId+","+fields[1]);
+			rescale += Math.pow(Double.parseDouble(fields[2]), r);
 		}
 			
 		for (Entry<Text, Double> v:vals) {	
