@@ -27,9 +27,9 @@ public class MatrixSplitter extends Configured implements Tool {
 		FileInputFormat.setInputPaths(job, input);
 		FileOutputFormat.setOutputPath(job, output);
 		job.setJarByClass(Driver.class);   
-		job.setMapperClass(RowSplitter.class);
+		job.setMapperClass(SplitterMapper.class);
 		job.setMapOutputKeyClass(Text.class);
-		job.setReducerClass(RowSplitterReducer.class);
+		job.setReducerClass(SplitterReducer.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
 		job.setNumReduceTasks(2);

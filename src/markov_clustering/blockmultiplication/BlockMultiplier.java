@@ -118,10 +118,11 @@ public class BlockMultiplier extends Configured implements Tool {
 	     innerJob2.setInputFormatClass(TextInputFormat.class);
 	     innerJob2.setOutputFormatClass(TextOutputFormat.class);
 	     FileInputFormat.addInputPath(innerJob2, secondStepOutput);
-	     FileOutputFormat.setOutputPath(innerJob2, new Path(outputDir+"/tmpsum/AB-"+rowId+"-"+colId));
+	     Path sumInputPath = new Path(outputDir+"/tmpsumAB-"+rowId+"-"+colId);
+	     tmpmul.add(sumInputPath);
+	     FileOutputFormat.setOutputPath(innerJob2, sumInputPath);
 	     innerJob2.setSpeculativeExecution(true);
 	     innerJob.setSpeculativeExecution(true);
-	     Path sumInputPath = new Path(outputDir+"/tmpsum/AB-"+rowId+"-"+colId);
 		 conf.setInt("blockIdRow", rowId);
 		 conf.setInt("blockIdCol", colId);
 		 ControlledJob controlledSumJob = new ControlledJob(conf);

@@ -6,7 +6,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
-public class RowSplitterReducer extends Reducer<Text, Text, Text, Text> {
+public class SplitterReducer extends Reducer<Text, Text, Text, Text> {
 	private MultipleOutputs<Text,Text> multipleOutputs;
 	  
 	 @Override
