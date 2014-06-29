@@ -126,15 +126,17 @@ public class DisjointComponentVisit {
 					// size of the cluster
 					
 					c1 = c2  = null;
+						
+					
 					for(TreeSet<Integer> tmp : clusters){
 						// search source node in this cluster
-						if(c1 != null)
+						if(c1 == null)
 							if(tmp.contains(src)){
 								c1 = tmp;
 							}
 						
 						// search dest node in thi cluster
-						if(c2 != null){
+						if(c2 == null){
 							if(tmp.contains(dest)){
 								c2 = tmp;
 							}
@@ -154,11 +156,13 @@ public class DisjointComponentVisit {
 							
 							// They are in different clusters, merge them
 							merge(c1,c2);
+							System.err.println("Merge");
 							
 						} else {
 							
 							// dest has no cluster, add it to src cluster 
 							c1.add(dest);
+							System.err.println("Add");
 							
 						}
 					} else {
@@ -170,6 +174,7 @@ public class DisjointComponentVisit {
 							nc.add(src);
 							nc.add(dest);
 							clusters.add(nc);
+							System.err.println("New Cluster");
 						}
 					}
 				}
@@ -190,6 +195,11 @@ public class DisjointComponentVisit {
 	}
 	
 	private void drawArc(int src, int dest){
+		
+		cg.setStroke(new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+		cg.setColor(Color.red);
+		cg.setPaint(Color.red);
+		
 		cg.drawLine(
 				(src / 100) * 10 + 5, 
 				(src % 100) * 10 + 5, 
