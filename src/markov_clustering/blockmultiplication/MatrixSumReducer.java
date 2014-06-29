@@ -15,6 +15,8 @@ public class MatrixSumReducer extends Reducer<Text, DoubleWritable, Text, Double
 		while(it.hasNext()) {
 			result += it.next().get();
 		}
-		context.write(key, new DoubleWritable(result));
+		String[] keyCoord = key.toString().split(",");
+		Text outKey = new Text(keyCoord[1]+","+keyCoord[2]);
+		context.write(outKey, new DoubleWritable(result));
 	}
 }

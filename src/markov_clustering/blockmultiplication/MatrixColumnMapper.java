@@ -18,13 +18,13 @@ public class MatrixColumnMapper extends Mapper<LongWritable, Text, Text, Text> {
     	 */
         String[] line = value.toString().split("\t");
         String[] indicesAndValue = line[1].split(",");
-        
+        String[] blockCoordinates = line[0].split(",");
         Text outputKey = new Text();
         Text outputValue = new Text();
         
-       	outputKey.set(indicesAndValue[1]);
+       	outputKey.set(blockCoordinates[0]+","+indicesAndValue[1]);
        	/** B flag is used to represent the second matrix */
-        outputValue.set("B," + indicesAndValue[0] + "," + line[2]);
+        outputValue.set("B," + indicesAndValue[0] + "," + line[2]+","+blockCoordinates[1]);
         
         context.write(outputKey, outputValue);
     }

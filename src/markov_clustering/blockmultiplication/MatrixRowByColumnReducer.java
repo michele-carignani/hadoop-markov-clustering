@@ -22,6 +22,7 @@ public class MatrixRowByColumnReducer extends Reducer<Text, Text, Text, DoubleWr
 	            listB.add(new SimpleEntry<Integer, Float>(Integer.parseInt(value[1]), Float.parseFloat(value[2])));
 	        }
 	    }
+	    String[] keyInfo = key.toString().split(",");
         String i;
         float a_ij;
         String k;
@@ -36,7 +37,7 @@ public class MatrixRowByColumnReducer extends Reducer<Text, Text, Text, DoubleWr
                     k = Integer.toString(b.getKey());
                     b_jk = b.getValue();
                     if(b_jk != 0){
-	                    out_key = new Text(k + "," + i);
+	                    out_key = new Text(keyInfo[0]+","+k + "," + i);
 	                    outputValue = new DoubleWritable(a_ij * b_jk);
 	                    context.write(out_key, outputValue);
                     }

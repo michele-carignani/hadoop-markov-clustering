@@ -21,7 +21,7 @@ public class RowSplitter extends Mapper<LongWritable, Text, Text, Text> {
 		Double rowPartition_id = Math.floor(Integer.parseInt(coordinates[0]) / split_size);
 		Double colPartition_id = Math.floor(Integer.parseInt(coordinates[1])/split_size);
 		Text outKey = new Text(rowPartition_id.intValue()+","+colPartition_id.intValue());
-		Text outVal = new Text(Integer.parseInt(coordinates[0])%split_size+","+Integer.parseInt(coordinates[1])+"\t"+fields[1]);
+		Text outVal = new Text(Integer.parseInt(coordinates[0])%split_size+","+Integer.parseInt(coordinates[1])%split_size+"\t"+fields[1]);
 		context.write(outKey, outVal);
 	}
 }

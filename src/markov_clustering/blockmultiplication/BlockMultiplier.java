@@ -6,6 +6,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.LinkedList;
 
+import markov_clustering.Driver;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -35,61 +37,44 @@ public class BlockMultiplier extends Configured implements Tool {
 	 * @param arg[4] block column id
 	 * 
 	 */
-	private int subMulIndex = 0;
 	private int rowId = 0;
 	private int colId = 0;
 	private int sleepTimeMillis = 3000;
 	private LinkedList<Path> tmpmul = new LinkedList<Path>();
+		
 	@Override
 	public int run(String[] arg) throws Exception {
-		final JobControl multiplicationController = new JobControl("Multiplications for Block "+arg[3]+","+arg[4]);
-		Configuration conf = super.getConf();
-		
-		int matrixSplits = conf.getInt("splits", 10);
+				Configuration conf = super.getConf();
 		rowId = Integer.parseInt(arg[3]);
 		colId = Integer.parseInt(arg[4]);
-		for (subMulIndex = 0; subMulIndex < matrixSplits; subMulIndex++) {
+		FileSystem fs = FileSystem.get(conf);
+			final JobControl multiplicationController = new JobControl("Multiplications for Block "+arg[3]+","+arg[4]);
+
 			addSubMultiplication(conf, multiplicationController, arg[0], arg[1], arg[2]);
-		}
+			
 		Thread multiplicationControllerExecutor = new Thread(){
 			@Override
 			public void run() {
 				multiplicationController.run();
 			}
 		};
-		/*Start the job control in a separate thread*/
-		multiplicationControllerExecutor.start();
-		while(!multiplicationController.allFinished()) {
-			Thread.sleep(sleepTimeMillis);
-		}
-		multiplicationController.stop(); //Make the other thread return 
-		FileSystem fs = FileSystem.get(conf);
-		for(Path p: tmpmul) { //delete temporary files used between Ist and IInd multiplication step
-			 fs.delete(p, true);
-		}
-		tmpmul.clear();
-		if (!multiplicationController.getFailedJobList().isEmpty()) System.exit(-1);
-		/** Start job summing up all the partial matrices.*/
-		Path sumInputPath = new Path(arg[2]+"/tmpsum/*/");
-		conf.setInt("blockIdRow", rowId);
-		conf.setInt("blockIdCol", colId);
-		Job sumJob = Job.getInstance(conf);
-		sumJob.setOutputKeyClass(Text.class);
-		sumJob.setOutputValueClass(DoubleWritable.class);
-		sumJob.setInputFormatClass(TextInputFormat.class);
-		sumJob.setOutputFormatClass(TextOutputFormat.class);
-		sumJob.setMapperClass(PartialSumMapper.class);
-		sumJob.setReducerClass(BlockSumReducer.class);
-		FileInputFormat.addInputPath(sumJob, sumInputPath);
-		FileOutputFormat.setOutputPath(sumJob, new Path(arg[2]+"/"+rowId+"-"+colId+"/"));
-		sumJob.submit();
-		boolean success = sumJob.waitForCompletion(true);
-		fs.delete(sumInputPath, true);
-		fs.delete(new Path(arg[2]+"/tmpsum"), true);
-		if (!success) System.exit(-1);
-		return 0;
+			
+			/*Start the job control in a separate thread*/
+			multiplicationControllerExecutor.start();
+			while(!multiplicationController.allFinished()) {
+				Thread.sleep(sleepTimeMillis);
+			}
+			multiplicationController.stop(); //Make the other thread return
+			multiplicationControllerExecutor.join(0);
+			for(Path p: tmpmul) { //delete temporary files used between Ist and IInd multiplication step
+				 fs.delete(p, true);
+			}
+			tmpmul.clear();
+			if (!multiplicationController.getFailedJobList().isEmpty()) System.exit(-1);
+			return 0;
 	}
 	
+
 	/** Adds a multiplication task to the controller controller 
 	 * @param conf the current configuration
 	 * @param controller the controller to which the jobs have to be added
@@ -109,10 +94,11 @@ public class BlockMultiplier extends Configured implements Tool {
 	     innerJob.setOutputValueClass(Text.class);
 	     innerJob.setReducerClass(MatrixRowByColumnReducer.class);
 	     innerJob.setOutputFormatClass(TextOutputFormat.class);
+	     innerJob.setJarByClass(Driver.class);
 	     /** Input from partition of matrix 1 */
-	     MultipleInputs.addInputPath(innerJob, new Path(inputDir1+"/"+rowId+"-"+subMulIndex), TextInputFormat.class, MatrixRowMapper.class);
+	     MultipleInputs.addInputPath(innerJob, new Path(inputDir1+"/"+rowId+"-*"), TextInputFormat.class, MatrixRowMapper.class);
 	     /** input from partition of matrix 2 */
-	     MultipleInputs.addInputPath(innerJob, new Path(inputDir2+"/"+subMulIndex+"-"+colId), TextInputFormat.class, MatrixColumnMapper.class);
+	     MultipleInputs.addInputPath(innerJob, new Path(inputDir2+"/*-"+colId), TextInputFormat.class, MatrixColumnMapper.class);
 	     /** Initialization of temporary dir */
 	     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss"+Math.random());
 		 Calendar cal = Calendar.getInstance();
@@ -126,20 +112,33 @@ public class BlockMultiplier extends Configured implements Tool {
 	     Job innerJob2 = job2.getJob();  
 	     innerJob2.setOutputKeyClass(Text.class);
 	     innerJob2.setOutputValueClass(DoubleWritable.class);
-	     
+	     innerJob2.setJarByClass(Driver.class);
 	     innerJob2.setMapperClass(IdentityMapperForDoubles.class);
 	     innerJob2.setReducerClass(MatrixSumReducer.class);
 	     innerJob2.setInputFormatClass(TextInputFormat.class);
 	     innerJob2.setOutputFormatClass(TextOutputFormat.class);
 	     FileInputFormat.addInputPath(innerJob2, secondStepOutput);
-	     
-	     FileOutputFormat.setOutputPath(innerJob2, new Path(outputDir+"/tmpsum/AB-"+rowId+"-"+colId+"-"+subMulIndex));
-	     innerJob.setNumReduceTasks(2);
-	     innerJob2.setNumReduceTasks(2);
+	     FileOutputFormat.setOutputPath(innerJob2, new Path(outputDir+"/tmpsum/AB-"+rowId+"-"+colId));
 	     innerJob2.setSpeculativeExecution(true);
 	     innerJob.setSpeculativeExecution(true);
-	     controller.addJob(job); controller.addJob(job2);
-		
+	     Path sumInputPath = new Path(outputDir+"/tmpsum/AB-"+rowId+"-"+colId);
+		 conf.setInt("blockIdRow", rowId);
+		 conf.setInt("blockIdCol", colId);
+		 ControlledJob controlledSumJob = new ControlledJob(conf);
+		 controlledSumJob.setJobName("Matrix Multiplication - Sum of partial products");
+		 controlledSumJob.addDependingJob(job2);
+		 Job sumJob = controlledSumJob.getJob();
+		 sumJob.setOutputKeyClass(Text.class);
+		 sumJob.setOutputValueClass(DoubleWritable.class);
+		 sumJob.setInputFormatClass(TextInputFormat.class);
+		 sumJob.setOutputFormatClass(TextOutputFormat.class);
+		 sumJob.setMapperClass(PartialSumMapper.class);
+		 sumJob.setReducerClass(BlockSumReducer.class);
+		 sumJob.setJarByClass(Driver.class);
+		 FileInputFormat.addInputPath(sumJob, sumInputPath);
+		 FileOutputFormat.setOutputPath(sumJob, new Path(outputDir+"/"+rowId+"-"+colId+"/"));	     
+	     controller.addJob(job); controller.addJob(job2); controller.addJob(controlledSumJob);
+	     
 	}
 
 }

@@ -56,7 +56,7 @@ public class Driver {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.exit(-1);
+		
 		/** Working directory 1, at first step initialize with copy of original matrix M0 */
 		working[0] = new Path(dirs[0]);
 		working[1] = new Path(dirs[1]);
