@@ -8,12 +8,14 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class Inflation {
 		
 	public static void run(Configuration configuration, Path input, Path output) throws IOException, ClassNotFoundException, InterruptedException {
 		Job job = Job.getInstance(configuration, "Matrix inflation");
+		LazyOutputFormat.setOutputFormatClass(job, TextOutputFormat.class);
 	    job.setJarByClass(Driver.class);
 	    job.setOutputKeyClass(Text.class);
 	    job.setOutputValueClass(Text.class);
@@ -24,7 +26,6 @@ public class Inflation {
 	    FileInputFormat.addInputPath(job, input);
 		FileOutputFormat.setOutputPath(job, output);
 	    job.submit();
-	    if(!job.waitForCompletion(true)) System.exit(-1);
-	    
+	    if(!job.waitForCompletion(true)) System.exit(-1);	    
 	}
 }

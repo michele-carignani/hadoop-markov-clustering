@@ -1,55 +1,68 @@
 package markov_clustering;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.LinkedList;
-import java.util.AbstractMap.SimpleEntry;
-import java.util.Map.Entry;
-
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 public class SumRReducer extends Reducer<Text, Text, Text, DoubleWritable> {
-	
-	private static final Log LOG = LogFactory.getLog(SumRReducer.class);
-	
-	/** Comparator for sorting the values; not used currently. Will be used to remove the smallest elements in a row  */
-	private static Comparator<Entry<Text, Double>> EntryComparator = new Comparator<Entry<Text, Double>>() {
+	private MultipleOutputs<Text,DoubleWritable> multipleOutputs;
+	 @Override
+	 protected void setup(Context context) throws IOException, InterruptedException {
+		 multipleOutputs  = new MultipleOutputs<Text, DoubleWritable>(context);
+	 }
 
-		public int compare(Entry<Text, Double> o1, Entry<Text, Double> o2) {
-			return Double.compare(o1.getValue(), o2.getValue());
+	public static class Record {
+		int blockIdX, blockIdY, rowId, colId;
+		double value;
+		public Record(int bX, int bY, int r, int c, double v) {
+			blockIdX = bX; blockIdY = bY; rowId = r; colId = c; value = v;
 		}
-	};
+		public String getBlockCoordinates() {
+			return blockIdX+","+blockIdY;
+		}
+		public String getLocalCoordinates() {
+			return rowId+","+colId;
+		}
+		public double getValue() { return value;}
+	}
 	
 	@Override
 	public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-		String rowId = key.toString();
+		int rowId = Integer.parseInt(key.toString());
 		/** Inflation parameter */
 		double r = context.getConfiguration().getDouble("inflationParameter", 2);
-		double threshold = context.getConfiguration().getDouble("threshold", 0.0001);
+		double threshold = context.getConfiguration().getDouble("threshold", 0.00001);
 		double rescale = 0.0;
-		LinkedList<Entry<Text, Double>> vals = new LinkedList<Entry<Text, Double>>();
+		int size = context.getConfiguration().getInt("size", 10000);
+		int splits = context.getConfiguration().getInt("splits", 10);
+		int split_size = size/splits;
+		Double rowPartition_id = Math.floor(rowId/split_size);
+		LinkedList<Record> vals = new LinkedList<Record>();
+		/** First step: calculate total sum for a single row..! */
 		for (Text v : values) {
-			/** fields[0] == 'B', not used here, fields[1] is the row, fields[2] is the value*/
+			/** fields[0] = absolute column identifier, fields[1] is the value*/
 			String[] fields = v.toString().split(",");
-			double currentValue = Math.pow(Double.parseDouble(fields[2]), 2);
-			Text coordinates = new Text(rowId+","+fields[1]);
+			double currentValue = Math.pow(Double.parseDouble(fields[1]), r);
 			if (currentValue < threshold) continue;
+			Double colPartition_id = Math.floor(Integer.parseInt(fields[1])/split_size);
 			rescale += currentValue;
-			double currentValue = Double.parseDouble(fields[2]);
-			Text coordinates = new Text(rowId+","+fields[1]);
-			rescale += Math.pow(Double.parseDouble(fields[2]), r);
+			Record representation = new Record(rowPartition_id.intValue(), colPartition_id.intValue(), rowId%split_size, Integer.parseInt(fields[1])%split_size, currentValue);
+			vals.add(representation);
 		}
 			
-		for (Entry<Text, Double> v:vals) {	
+		for (Record v:vals) {	
 			double value = v.getValue();
 			value /= rescale;
-			context.write(v.getKey(), new DoubleWritable(value));
-			LOG.debug("==> Write value: " + value + " fields:");
+			multipleOutputs.write(new Text(v.getBlockCoordinates()+"\t"+v.getLocalCoordinates()), new DoubleWritable(value), v.getBlockCoordinates().replace(',', '-')+"/block");
 		}
 		
 	}
+	
+	@Override
+	 protected void cleanup(Context context)
+	   throws IOException, InterruptedException {
+	  multipleOutputs.close();
+	 }
 }

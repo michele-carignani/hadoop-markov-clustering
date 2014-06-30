@@ -5,7 +5,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import markov_clustering.blockmultiplication.BlockMultiplier;
 import markov_clustering.blockmultiplication.BlockWiseMatrixMultiplication;
 import markov_clustering.test.StochasticRowVerifier;
 
@@ -15,41 +14,50 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
 
 
+
 public class Driver {
     
 	
 	/**
 	 * @param args[0] input folder
 	 * @param args[1] output folder
-	 * @param arg[2] maximum number of iterations
-	 * @param arg[3] number of workers (not mandatory; if not specified will be one for each row)
+	 * @param arg[2] number of iterations
+	 * @param arg[3] number of blocks for row and for column (ie.10 partitions in 100 blocks the matrix)
+	 * @param arg[4] number of workers (not mandatory; if not specified will be equal to the number of splits)
+	 * 
 	 * @throws IOException 
 	 */
 	public static void main(String[] args) throws IOException {
 		long beginning = System.nanoTime();
+		if (args.length < 4){
+			System.out.println("Usage: inputFolder outputFolder maxIterations numBlocks [numWorkers]");
+		}
 		Configuration clusterConf = new Configuration();
 		
 		int iterations = 0;
 		int maxIterations = Integer.parseInt(args[2].trim());
+		int splits = Integer.parseInt(args[3].trim());
 		int current, next, prev, inflate = 3;
-		
+		int numWorkers = (args.length > 4) ? Integer.parseInt(args[4]) : splits;
 		Path[] working = new Path[4];
 		
 		boolean converged = false;
 		
 		clusterConf.setDouble("inflationParameter", 4);
 		/** Directory for the original matrix M0 */
-		Path inputfolder = new Path(args[0]);
 		clusterConf.setDouble("threshold", 0.00001);
 		clusterConf.setBoolean("converged", true);
+		clusterConf.setInt("splits", splits);
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 	    Calendar cal = Calendar.getInstance();
 		String[] dirs= new String[]{
 				"/tmp/A-Partitioned-"+dateFormat.format(cal.getTime()), 
 				"/tmp/B-Partitioned-"+dateFormat.format(cal.getTime()), 
-				"/tmp/C-Partitioned-"+dateFormat.format(cal.getTime())
+				"/tmp/C-Partitioned-"+dateFormat.format(cal.getTime()),
+				"/tmp/Inflate-"+dateFormat.format(cal.getTime()),
 		};
 		try {
+			/** Partitioning of matrix in smaller blocks; do it in parallel */
 			ToolRunner.run(clusterConf, new MatrixSplitter(), new String[]{args[0], dirs[0]});
 			ToolRunner.run(clusterConf, new MatrixSplitter(), new String[]{args[0], dirs[1]});
 		} catch (Exception e) {
@@ -57,11 +65,11 @@ public class Driver {
 			e.printStackTrace();
 		}
 		
-		/** Working directory 1, at first step initialize with copy of original matrix M0 */
+		/** Working directory 0 and 1 at first step are initialized with the initial matrix */
 		working[0] = new Path(dirs[0]);
 		working[1] = new Path(dirs[1]);
 		working[2] = new Path(dirs[2]);		
-		working[inflate] = new Path("/tmp/Inflate-"+dateFormat.format(cal.getTime()));
+		working[inflate] = new Path(dirs[3]);
 		FileSystem fs = FileSystem.get(clusterConf);
 		
 		
@@ -84,10 +92,10 @@ public class Driver {
 				
 				/** Ensure the directories do not exist*/
 				fs.delete(working[next], true);
-				//fs.delete(working[inflate], true);
+				fs.delete(working[inflate], true);
 				
 				/** Run a two step matrix multiplication map-reduce job */
-				ToolRunner.run(clusterConf, new BlockWiseMatrixMultiplication(), new String[]{dirs[prev], dirs[current], dirs[next]});
+				ToolRunner.run(clusterConf, new BlockWiseMatrixMultiplication(), new String[]{dirs[prev], dirs[current], dirs[inflate], Integer.toString(numWorkers)});
 				System.exit(-1);
 				/** Inflation, for making convergence faster. Default r is = 2 
 				 * */	
@@ -95,7 +103,6 @@ public class Driver {
 				
 				/** Run a one step map-reduce job to check convergece. Default threshold is 10^-5 */
 				converged = Convergence.run(clusterConf, working[current], working[next]);
-				
 				iterations++;
 				
 			} while (!converged && maxIterations > iterations);
