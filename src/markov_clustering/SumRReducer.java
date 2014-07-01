@@ -33,7 +33,7 @@ public class SumRReducer extends Reducer<Text, Text, Text, DoubleWritable> {
 		int rowId = Integer.parseInt(key.toString());
 		/** Inflation parameter */
 		double r = context.getConfiguration().getDouble("inflationParameter", 2);
-		double threshold = context.getConfiguration().getDouble("threshold", 0.00001);
+		
 		double rescale = 0.0;
 		int size = context.getConfiguration().getInt("size", 10000);
 		int splits = context.getConfiguration().getInt("splits", 10);
@@ -45,10 +45,10 @@ public class SumRReducer extends Reducer<Text, Text, Text, DoubleWritable> {
 			/** fields[0] = absolute column identifier, fields[1] is the value*/
 			String[] fields = v.toString().split(",");
 			double currentValue = Math.pow(Double.parseDouble(fields[1]), r);
-			if (currentValue < threshold) continue;
-			Double colPartition_id = Math.floor(Integer.parseInt(fields[1])/split_size);
+			
+			Double colPartition_id = Math.floor(Integer.parseInt(fields[0])/split_size);
 			rescale += currentValue;
-			Record representation = new Record(rowPartition_id.intValue(), colPartition_id.intValue(), rowId%split_size, Integer.parseInt(fields[1])%split_size, currentValue);
+			Record representation = new Record(rowPartition_id.intValue(), colPartition_id.intValue(), rowId%split_size, Integer.parseInt(fields[0])%split_size, currentValue);
 			vals.add(representation);
 		}
 			

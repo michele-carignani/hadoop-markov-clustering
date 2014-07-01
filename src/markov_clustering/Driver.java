@@ -28,12 +28,12 @@ public class Driver {
 	 * @throws IOException 
 	 */
 	public static void main(String[] args) throws IOException {
-		long beginning = System.nanoTime();
+		
 		if (args.length < 4){
 			System.out.println("Usage: inputFolder outputFolder maxIterations numBlocks [numWorkers]");
 		}
 		Configuration clusterConf = new Configuration();
-		
+		long beginning = System.nanoTime();
 		int iterations = 0;
 		int maxIterations = Integer.parseInt(args[2].trim());
 		int splits = Integer.parseInt(args[3].trim());
@@ -54,7 +54,7 @@ public class Driver {
 				"/tmp/A-Partitioned-"+dateFormat.format(cal.getTime()), 
 				"/tmp/B-Partitioned-"+dateFormat.format(cal.getTime()), 
 				"/tmp/C-Partitioned-"+dateFormat.format(cal.getTime()),
-				"/tmp/Inflate-"+dateFormat.format(cal.getTime()),
+				"/tmp/Inflate-"+dateFormat.format(cal.getTime())
 		};
 		try {
 			/** Partitioning of matrix in smaller blocks; do it in parallel */
@@ -70,6 +70,7 @@ public class Driver {
 		working[1] = new Path(dirs[1]);
 		working[2] = new Path(dirs[2]);		
 		working[inflate] = new Path(dirs[3]);
+		
 		FileSystem fs = FileSystem.get(clusterConf);
 		
 		
@@ -96,13 +97,13 @@ public class Driver {
 				
 				/** Run a two step matrix multiplication map-reduce job */
 				ToolRunner.run(clusterConf, new BlockWiseMatrixMultiplication(), new String[]{dirs[prev], dirs[current], dirs[inflate], Integer.toString(numWorkers)});
-				System.exit(-1);
+				long end = System.nanoTime();
 				/** Inflation, for making convergence faster. Default r is = 2 
 				 * */	
-				Inflation.run(clusterConf, working[inflate], working[next]);
+				Inflation.run(clusterConf, new Path(dirs[inflate]+"/*/"), working[next], numWorkers);
 				
 				/** Run a one step map-reduce job to check convergece. Default threshold is 10^-5 */
-				converged = Convergence.run(clusterConf, working[current], working[next]);
+				converged = Convergence.run(clusterConf, new Path(dirs[current]+"/*/"),  new Path(dirs[next]+"/*/"), numWorkers);
 				iterations++;
 				
 			} while (!converged && maxIterations > iterations);

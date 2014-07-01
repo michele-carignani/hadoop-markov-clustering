@@ -13,7 +13,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class Inflation {
 		
-	public static void run(Configuration configuration, Path input, Path output) throws IOException, ClassNotFoundException, InterruptedException {
+	public static void run(Configuration configuration, Path input, Path output, int numWorkers) throws IOException, ClassNotFoundException, InterruptedException {
 		Job job = Job.getInstance(configuration, "Matrix inflation");
 		LazyOutputFormat.setOutputFormatClass(job, TextOutputFormat.class);
 	    job.setJarByClass(Driver.class);
@@ -25,6 +25,7 @@ public class Inflation {
 	    job.setOutputFormatClass(TextOutputFormat.class);
 	    FileInputFormat.addInputPath(job, input);
 		FileOutputFormat.setOutputPath(job, output);
+		job.setNumReduceTasks(numWorkers);
 	    job.submit();
 	    if(!job.waitForCompletion(true)) System.exit(-1);	    
 	}

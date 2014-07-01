@@ -20,7 +20,7 @@ public class Convergence {
 		NOT_CONVERGED;	
 	}
 		
-	public static boolean run(Configuration conf, Path oldMatrix, Path newMatrix) throws IOException, ClassNotFoundException, InterruptedException {
+	public static boolean run(Configuration conf, Path oldMatrix, Path newMatrix, int numWorkers) throws IOException, ClassNotFoundException, InterruptedException {
 		Job convergence = Job.getInstance(conf, "MatrixConvergenceChecker");
 		
         convergence.setJarByClass(Driver.class);
@@ -37,6 +37,7 @@ public class Convergence {
 		Calendar cal = Calendar.getInstance();
 		Path convergenceOutput= new Path("/tmp/convergence"+dateFormat.format(cal.getTime()));
         FileOutputFormat.setOutputPath(convergence, convergenceOutput);
+        convergence.setNumReduceTasks(numWorkers);
         convergence.submit();
         if (!convergence.waitForCompletion(true)) System.exit(-1);       
         boolean converged =  convergence.getCounters().findCounter(ConvergenceCounter.NOT_CONVERGED).getValue() <= 0; 
