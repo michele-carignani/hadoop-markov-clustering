@@ -14,9 +14,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 		
         public void reduce(Text key, Iterable<DoubleWritable> v, Context context)
             throws IOException, InterruptedException {
-        	// takes ((ID-Num-Source-Dest),(Val))
-        	// puts ((ID-Source),(Dest-AvgVal))
-        	
+        	        	
         	double w, sum = 0;
         	Iterator<DoubleWritable> values = v.iterator();
         	while(values.hasNext()){

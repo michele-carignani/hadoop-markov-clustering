@@ -20,14 +20,21 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
+/**
+ * Driver used for the generation of probability graphs over the dataset
 
-/** Generate aggregated sums of strengths over the nodes
- *  for each hour interval
  */
-
 public class TimeAggregatedGraphs {
 	
-	
+	/**
+	 * Generates a new job whose aim is the filtering of the interesting values.
+	 * @param conf the current configuration
+	 * @param currentChunk index of the chunk currently computed
+	 * @param numReducers number of reducers
+	 * @param tmpDir where to write the filtered values
+	 * @return a ready-to-run job performing a filter over the specified aggregations
+	 * @throws IOException
+	 */
 	public static Job filterJob(Configuration conf, int currentChunk, int numReducers, String tmpDir) throws IOException {
 		Job job = Job.getInstance(conf, "Time Aggregated Graphs");
     	job.setJarByClass(TimeAggregatedGraphs.class);
@@ -54,7 +61,7 @@ public class TimeAggregatedGraphs {
 	 */
     public static void main(String[] args) throws Exception {
         if (args.length < 3) {
-        	System.out.println("Usage: call with aggregationFile (local, not hdfs) inputDirectory outputDirectory");
+        	System.out.println("Usage: call with aggregationFile inputDirectory outputDirectory sizeOfChunks(files to be processed in parallel) numReducers");
         	System.exit(-1);
         }
         Configuration conf = new Configuration();
@@ -82,8 +89,7 @@ public class TimeAggregatedGraphs {
     		System.out.println("Please provide a valid aggregation file");
     		System.exit(-1);
     	}
-    	System.out.println("Aggregators:"+countAggregators);
-    	System.out.println(aggregators);
+
     	conf.set("globalAggregators", aggregators);
     	DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm");
         Calendar cal = Calendar.getInstance();
@@ -93,7 +99,8 @@ public class TimeAggregatedGraphs {
     	int currentChunkSize = 0;
     	int currentChunk = 0;
     	Job job = filterJob(conf, currentChunk, numReducers, tmpDir);
-	    /** Divide the files in jobs and calculate them one by one to avoid issues.*/
+	    /** Divide the files in jobs and filter them chunk by chunk.
+	     * This allows to avoid disk filling in case of too large intermediate data*/
     	for (FileStatus file : fs.listStatus(new Path(args[1]))) {
     		 if(file.isFile())
     			 FileInputFormat.addInputPath(job, file.getPath());
@@ -111,10 +118,10 @@ public class TimeAggregatedGraphs {
 	    	job.submit();
 			if(!job.waitForCompletion(true)) System.exit(-1);
 	    }
-	    
+	    /** Perform aggregation of the various chunks and finally aggregate all
+	     * intermediate data to produce a single probability graph*/
         Job second = Job.getInstance(conf, "create aggregated probability graphs");
         second.setJarByClass(TimeAggregatedGraphs.class);
-        
         second.setMapperClass(IdentityMapper.class);
         LazyOutputFormat.setOutputFormatClass(second, TextOutputFormat.class);
         second.setReducerClass(ProbabilityReducer.class);
@@ -127,6 +134,7 @@ public class TimeAggregatedGraphs {
         second.setInputFormatClass(TextInputFormat.class);
         second.submit();
         boolean success = second.waitForCompletion(true);
+        //Cleanup
         fs.delete(new Path(tmpDir), true);
         System.exit((success) ? 0 : 1);
     }

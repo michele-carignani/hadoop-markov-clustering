@@ -10,7 +10,11 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
-
+/**
+ * Calculates probabilities. Since values can be multiple (i.e. if the previous 
+ * phases have produced mutliple intermediate splitted files) there's a
+ * merging phase performed through a sort and a scanning of the values
+ */
 
 public class ProbabilityReducer extends Reducer<Text, Text, Text, DoubleWritable> {
 	
