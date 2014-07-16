@@ -81,11 +81,12 @@ public class BlockMultiplier extends Configured implements Tool {
 	 */
 	public int run(String[] arg) throws IOException, InterruptedException  {
 		Configuration conf = super.getConf();
-		final JobControl multiplicationController = new JobControl("BlockWise Multiplication");
+		JobControl multiplicationControllerStub = new JobControl("BlockWise Multiplication");
 		for(Block block: partition)
-			addSubMultiplication2(conf, multiplicationController, block);
+			addSubMultiplication2(conf, multiplicationControllerStub, block);
 		/** JobControl in a separate thread*/
-		Thread multiplicationControllerExecutor = new Thread(){
+		final JobControl multiplicationController = multiplicationControllerStub;
+		final Thread multiplicationControllerExecutor = new Thread(){
 			@Override
 			public void run() {
 				multiplicationController.run();

@@ -6,7 +6,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
-public class SumRReducer extends Reducer<Text, Text, Text, DoubleWritable> {
+public class InflationReducer extends Reducer<Text, Text, Text, DoubleWritable> {
 	private MultipleOutputs<Text,DoubleWritable> multipleOutputs;
 	 @Override
 	 protected void setup(Context context) throws IOException, InterruptedException {

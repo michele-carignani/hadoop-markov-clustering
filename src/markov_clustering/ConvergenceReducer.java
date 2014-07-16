@@ -32,6 +32,6 @@ public class ConvergenceReducer extends Reducer<Text,DoubleWritable,Text,Text> {
 		if(difference > threeshold) {
 			context.getCounter(Convergence.ConvergenceCounter.NOT_CONVERGED).increment(1);
 		} 
-		context.write(coordinates, new Text(prev+"\t"+next)); //For debugging purposes, remember to remove
+		//context.write(coordinates, new Text(prev+"\t"+next)); //For debugging purposes, remember to remove
 	}
 }

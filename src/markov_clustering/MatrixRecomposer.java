@@ -1,4 +1,6 @@
-package markov_clustering.blockmultiplication;
+package markov_clustering;
+
+import markov_clustering.blockmultiplication.RecomposerMapper;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -31,9 +33,12 @@ public class MatrixRecomposer extends Configured implements Tool {
 		recomposer.setOutputValueClass(DoubleWritable.class);
 		recomposer.setMapperClass(RecomposerMapper.class);
 		recomposer.setNumReduceTasks(0);
+		recomposer.setJarByClass(Driver.class);
 		FileInputFormat.addInputPath(recomposer, input);
 		FileOutputFormat.setOutputPath(recomposer, output);
-		return 0;
+		recomposer.submit();
+		boolean success = recomposer.waitForCompletion(true);
+		return (success) ? 0 : -1;
 	}
 
 

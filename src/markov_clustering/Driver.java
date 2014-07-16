@@ -6,7 +6,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import markov_clustering.blockmultiplication.BlockWiseMatrixMultiplication;
-import markov_clustering.test.StochasticRowVerifier;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -70,7 +69,6 @@ public class Driver {
 		working[1] = new Path(dirs[1]);
 		working[2] = new Path(dirs[2]);		
 		working[inflate] = new Path(dirs[3]);
-		
 		FileSystem fs = FileSystem.get(clusterConf);
 		
 		
@@ -91,13 +89,12 @@ public class Driver {
 				current = (iterations+1)%3;
 				next = (iterations+2)%3;
 				
-				/** Ensure the directories do not exist*/
+				/** Ensure the output directories do not exist*/
 				fs.delete(working[next], true);
 				fs.delete(working[inflate], true);
 				
 				/** Run a two step matrix multiplication map-reduce job */
 				ToolRunner.run(clusterConf, new BlockWiseMatrixMultiplication(), new String[]{dirs[prev], dirs[current], dirs[inflate], Integer.toString(numWorkers)});
-				long end = System.nanoTime();
 				/** Inflation, for making convergence faster. Default r is = 2 
 				 * */	
 				Inflation.run(clusterConf, new Path(dirs[inflate]+"/*/"), working[next], numWorkers);
@@ -114,9 +111,17 @@ public class Driver {
 			} else { 
 				System.out.println("Convergency not reached");
 			}
-			System.out.println("Running correctness diagnosis:");
-			StochasticRowVerifier.run(clusterConf, working[next], new Path("/tmp/stochasticVerifier"+dateFormat.format(cal.getTime())));
-			
+			System.out.println("Recomposing the final matrix...");
+			int recompositionState = ToolRunner.run(clusterConf, new MatrixRecomposer(), new String[]{dirs[next], args[1]});
+			if(recompositionState == 0) { //Recomposition have been successfull, thus delete the other stuff
+				for(Path p: working) {
+					fs.delete(p, true);
+				}
+				return;
+			}
+			//Print where latest calculated matrix can be found
+			System.out.println("WARN: Recomposition not performed!");
+			System.out.println("Latest matrix can be found on "+dirs[next]);
 		} catch(IOException io) {
 			
 			io.printStackTrace();
@@ -135,9 +140,8 @@ public class Driver {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		long end = System.nanoTime();
 		System.out.println((end-beginning)/1000 + " microseconds of execution time");
 	}
-	
-	/** Runs the job for matrix multiplication*/
 }

@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
@@ -39,7 +40,11 @@ public class Convergence {
         FileOutputFormat.setOutputPath(convergence, convergenceOutput);
         convergence.setNumReduceTasks(numWorkers);
         convergence.submit();
-        if (!convergence.waitForCompletion(true)) System.exit(-1);       
+        boolean success = convergence.waitForCompletion(true);
+        FileSystem fs = FileSystem.get(conf);
+        fs.delete(convergenceOutput, true);
+        if (!success) System.exit(-1);
+        
         boolean converged =  convergence.getCounters().findCounter(ConvergenceCounter.NOT_CONVERGED).getValue() <= 0; 
         System.out.println("Matrix differs from the previous in "+convergence.getCounters().findCounter(ConvergenceCounter.NOT_CONVERGED).getValue()+" values");        
         return converged;

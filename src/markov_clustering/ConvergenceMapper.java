@@ -8,7 +8,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 /**
- * Emits values keyed by their coordinates. One mapper is launched for the old and another for the new matrix.
+ * Emits values keyed by their coordinates. 
+ * One mapper is launched for the old and another for the new matrix.
  */
 public class ConvergenceMapper extends Mapper<LongWritable, Text, Text, DoubleWritable> {
 /** Format of the incoming file is blockidr,blockidc \t row,column\t value */

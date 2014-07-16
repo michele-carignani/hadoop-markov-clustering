@@ -10,17 +10,15 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-
+/** Schedules the inflation job; returns when it is finshed. In case of failure, exits */
 public class Inflation {
-		
 	public static void run(Configuration configuration, Path input, Path output, int numWorkers) throws IOException, ClassNotFoundException, InterruptedException {
 		Job job = Job.getInstance(configuration, "Matrix inflation");
 		LazyOutputFormat.setOutputFormatClass(job, TextOutputFormat.class);
 	    job.setJarByClass(Driver.class);
 	    job.setOutputKeyClass(Text.class);
 	    job.setOutputValueClass(Text.class);
-	    
-	    job.setReducerClass(SumRReducer.class);
+	    job.setReducerClass(InflationReducer.class);
 	    job.setMapperClass(MatrixRowMapper.class);
 	    job.setOutputFormatClass(TextOutputFormat.class);
 	    FileInputFormat.addInputPath(job, input);
